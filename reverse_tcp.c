@@ -17,10 +17,9 @@ void* th_read(void* client_sock){
 			return NULL;
 		}
 		else{
-			pthread_mutex_lock(&mutex);
 			printf("Result:\n");
 			printf("%s", response);
-			pthread_mutex_unlock(&mutex);
+			fflush(stdout);
 		}
 	}
 }
@@ -28,10 +27,8 @@ void* th_read(void* client_sock){
 void* th_send(void* client_sock){
 	char* command_to_send = realloc(NULL, sizeof(*command_to_send)*65536);
 	while(1){
-		pthread_mutex_lock(&mutex);
 		printf("\nCommand: ");
 		fgets(command_to_send, 65536, stdin);
-		pthread_mutex_unlock(&mutex);
 		if(strcmp(command_to_send, "quit") == 0)
 			return NULL;
 		write((int)client_sock, command_to_send, strlen(command_to_send));
