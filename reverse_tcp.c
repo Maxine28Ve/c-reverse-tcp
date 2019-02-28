@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 void* th_read(void* client_sock){
 	char* response = realloc(NULL, sizeof(*response)*128000);
 	while(1){
@@ -16,8 +17,10 @@ void* th_read(void* client_sock){
 			return NULL;
 		}
 		else{
+			pthread_mutex_lock(&mutex);
 			printf("Result:\n");
 			printf("%s", response);
+			pthread_mutex_unlock(&mutex);
 		}
 	}
 }
@@ -25,8 +28,10 @@ void* th_read(void* client_sock){
 void* th_send(void* client_sock){
 	char* command_to_send = realloc(NULL, sizeof(*command_to_send)*65536);
 	while(1){
+		pthread_mutex_lock(&mutex);
 		printf("\nCommand: ");
 		fgets(command_to_send, 65536, stdin);
+		pthread_mutex_unlock(&mutex);
 		if(strcmp(command_to_send, "quit") == 0)
 			return NULL;
 		write((int)client_sock, command_to_send, strlen(command_to_send));
@@ -74,8 +79,8 @@ int main(int argc, char** argv){
 	pthread_t thread_read, thread_send;
 	int iret1, iret2;
 
-	iret2 = pthread_create(&thread_send, NULL, th_send, (void*)client_sock);
 	iret1 = pthread_create(&thread_read, NULL, th_read, (void*)client_sock);
+	iret2 = pthread_create(&thread_send, NULL, th_send, (void*)client_sock);
 	if(iret1 || iret2){
 		perror("Failed to start threads\n");
 		exit(EXIT_FAILURE);
