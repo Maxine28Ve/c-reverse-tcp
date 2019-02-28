@@ -10,30 +10,34 @@
 
 void* th_read(void* client_sock){
 	char* response = realloc(NULL, sizeof(*response)*128000);
-	if(read((int)client_sock, response, 128000) < 0){
-		perror("read failed: ");
-		return NULL;
-	}
-	else{
-		printf("Result:\n");
-		printf("%s", response);
+	while(1){
+		if(read((int)client_sock, response, 128000) < 0){
+			perror("read failed: ");
+			return NULL;
+		}
+		else{
+			printf("Result:\n");
+			printf("%s", response);
+		}
 	}
 }
 
 void* th_send(void* client_sock){
 	char* command_to_send = realloc(NULL, sizeof(*command_to_send)*65536);
-	printf("\nCommand: ");
-	fgets(command_to_send, 65536, stdin);
-	if(strcmp(command_to_send, "quit") == 0)
-		return NULL;
-	write((int)client_sock, command_to_send, strlen(command_to_send));
+	while(1){
+		printf("\nCommand: ");
+		fgets(command_to_send, 65536, stdin);
+		if(strcmp(command_to_send, "quit") == 0)
+			return NULL;
+		write((int)client_sock, command_to_send, strlen(command_to_send));
+	}
 	if(command_to_send){
 		free(command_to_send);
 	}
 }
 
 int main(int argc, char** argv){
-	short int portno;
+	unsigned short int portno;
 	if(argc < 2){
 		portno = 65000;
 	}
@@ -70,14 +74,16 @@ int main(int argc, char** argv){
 	pthread_t thread_read, thread_send;
 	int iret1, iret2;
 
-	while(1){
-		iret1 = pthread_create(&thread_read, NULL, th_read, (void*)client_sock);
-		iret2 = pthread_create(&thread_send, NULL, th_send, (void*)client_sock);
-		if(iret1 || iret2){
-			perror("Failed to start threads\n");
-			exit(EXIT_FAILURE);
-		}
+	iret2 = pthread_create(&thread_send, NULL, th_send, (void*)client_sock);
+	iret1 = pthread_create(&thread_read, NULL, th_read, (void*)client_sock);
+	if(iret1 || iret2){
+		perror("Failed to start threads\n");
+		exit(EXIT_FAILURE);
 	}
+	wait(NULL);
+	pthread_join( thread_send, NULL);
+	pthread_join( thread_read, NULL);
+
 	if(command_to_send){
 		free(command_to_send);
 	}
