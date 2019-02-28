@@ -79,8 +79,8 @@ int main(int argc, char** argv){
 	pthread_t thread_read, thread_send;
 	int iret1, iret2;
 
-	iret1 = pthread_create(&thread_read, NULL, th_read, (void*)client_sock);
 	iret2 = pthread_create(&thread_send, NULL, th_send, (void*)client_sock);
+	iret1 = pthread_create(&thread_read, NULL, th_read, (void*)client_sock);
 	if(iret1 || iret2){
 		perror("Failed to start threads\n");
 		exit(EXIT_FAILURE);
