@@ -1,10 +1,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
+
+void* th_read(void* client_sock){
+	char* response = realloc(NULL, sizeof(*response)*128000);
+	if(read((int)client_sock, response, 128000) < 0){
+		perror("read failed: ");
+		return NULL;
+	}
+	else{
+		printf("Result:\n");
+		printf("%s", response);
+	}
+}
+
+void* th_send(void* client_sock){
+	char* command_to_send = realloc(NULL, sizeof(*command_to_send)*65536);
+	printf("\nCommand: ");
+	fgets(command_to_send, 65536, stdin);
+	if(strcmp(command_to_send, "quit") == 0)
+		return NULL;
+	write((int)client_sock, command_to_send, strlen(command_to_send));
+	if(command_to_send){
+		free(command_to_send);
+	}
+}
 
 int main(int argc, char** argv){
 	short int portno;
@@ -40,26 +66,18 @@ int main(int argc, char** argv){
 	 bzero(command_to_send, 65536);
 	char* response = malloc(sizeof(char*)*128000);
 	 bzero(response, 128000);
+
+	pthread_t thread_read, thread_send;
+	int iret1, iret2;
+
 	while(1){
-		printf("Command: ");
-		fgets(command_to_send, 65536, stdin);
-		if(strcmp(command_to_send, "quit") == 0)
-			break;
-		write(client_sock, command_to_send, strlen(command_to_send));
-		if(read(client_sock, response, 128000) < 0){
-			perror("read failed: ");
-			break;
+		iret1 = pthread_create(&thread_read, NULL, th_read, (void*)client_sock);
+		iret2 = pthread_create(&thread_send, NULL, th_send, (void*)client_sock);
+		if(iret1 || iret2){
+			perror("Failed to start threads\n");
+			exit(EXIT_FAILURE);
 		}
-		else{
-			printf("Result:\n");
-			printf("%s", response);
-		}
-		fflush(stdout);
-		fflush(stdin);
-		bzero(command_to_send, 65536);
-		bzero(response, strlen(response));
 	}
-	close(client_sock);
 	if(command_to_send){
 		free(command_to_send);
 	}
