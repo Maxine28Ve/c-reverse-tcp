@@ -9,16 +9,16 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-sem_t sem;
-sem_t semaphore_write;
+sem_t reading;
+sem_t writing;
+int go = 0;
 void* th_read(void* args){
 	int client_sock = (int)((int*)args)[0];
 	int status = 0;
 	char* response = realloc(NULL, sizeof(*response)*128000);
 	while(1){
-		sem_wait(&sem);
 		status = read((int)client_sock, response, 128000);
-		sem_post(&sem);
+//		sem_wait(&reading);
 		if(status <= 0){
 			perror("read failed: ");
 			return NULL;
@@ -26,9 +26,13 @@ void* th_read(void* args){
 		else{
 			printf("Result:\n");
 			printf("%s", response);
+			printf("\n");
 			fflush(stdout);
 			fflush(stderr);
+			bzero(response, 128000);
+			go = 0;
 		}
+//		sem_post(&reading);
 	}
 }
 
@@ -36,13 +40,14 @@ void* th_send(void* args){
 	int client_sock = (int)((int*)args)[0];
 	char* command_to_send = realloc(NULL, sizeof(*command_to_send)*65536);
 	while(1){
-		sem_wait(&sem);
+//		sem_wait(&reading);
 		printf("\nCommand: ");
 		fgets(command_to_send, 65536, stdin);
-		sem_post(&sem);
 		if(strcmp(command_to_send, "quit") == 0)
 			return NULL;
 		write((int)client_sock, command_to_send, strlen(command_to_send));
+//		sem_post(&reading);
+		bzero(command_to_send, strlen(command_to_send));
 	}
 	if(command_to_send){
 		free(command_to_send);
@@ -87,8 +92,8 @@ int main(int argc, char** argv){
 	pthread_t thread_read, thread_send;
 	int iret1, iret2;
 
-	sem_init(&sem, 1, 1);
-	sem_init(&semaphore_write, 1, 0);
+	sem_init(&reading, 1, 1);
+	sem_init(&writing, 1, 1);
 	int args[1];
 	args[0] = client_sock;
 	iret2 = pthread_create(&thread_send, NULL, th_send, (void*)args);
