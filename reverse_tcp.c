@@ -15,9 +15,9 @@ int go = 0;
 void* th_read(void* args){
 	int client_sock = (int)((int*)args)[0];
 	int status = 0;
-	char* response = realloc(NULL, sizeof(*response)*128000);
+	char* response = realloc(NULL, sizeof(*response)*900000);
 	while(1){
-		status = read((int)client_sock, response, 128000);
+		status = read((int)client_sock, response, 900000);
 //		sem_wait(&reading);
 		if(status <= 0){
 			perror("read failed: ");
@@ -29,7 +29,7 @@ void* th_read(void* args){
 			printf("\n");
 			fflush(stdout);
 			fflush(stderr);
-			bzero(response, 128000);
+			bzero(response, 900000);
 			go = 0;
 		}
 //		sem_post(&reading);
