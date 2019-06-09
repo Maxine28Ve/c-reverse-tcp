@@ -24,7 +24,6 @@ void* th_read(void* args){
 			return NULL;
 		}
 		else{
-			printf("Result:\n");
 			printf("%s", response);
 			printf("\n");
 			fflush(stdout);
