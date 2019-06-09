@@ -59,24 +59,31 @@ int main(int argc, char** argv){
 
 	}
 */
-	char* command = realloc(NULL, sizeof(*command)*65000);
-	char result[65000];
+	char* command = calloc(65000, sizeof(*command));
+	char* result = calloc(65000, sizeof(*result));
 	FILE* pipe = NULL;
 	size_t len;
+	fflush(stdin);
+	fflush(stdout);
+	fflush(stderr);
 	dup2(client_sock, 2);
 	while(read(client_sock, command, 65000) > 0){
-		printf("WHILEEEEEE");
+		printf("I received %s\n", command);
 		pipe = popen(command, "r");
 		if (NULL == pipe) {
     	perror("pipe");
     	exit(1);
 		}
-		while(fgets(result, 65000, pipe) != NULL){
+		printf("\t_______\n");
+		while(fgets(result, 65000, pipe) != 0){
+			printf("%s", result);
 			write(client_sock, result, strlen(result));
 		}
+		write(client_sock, NULL, 1);
+		printf("\n\t_______\n");
 		pclose(pipe);
 
-		bzero(result, strlen(result));
+		bzero(result, 65000);
 		bzero(command, 65000);
 	}
 	return 0;
