@@ -12,13 +12,49 @@
 sem_t reading;
 sem_t writing;
 int go = 0;
+
+void sendFileToClient( int client_sock){
+	char* local_filename = calloc(256, sizeof(*local_filename));
+	printf("\t--- Local Filename: ");
+	scanf("%s", local_filename);
+	char* remote_filename = calloc(256, sizeof(*remote_filename));
+	printf("\t--- Remote Filename: ");
+	scanf("%s", remote_filename);
+
+	char* buffer;
+	size_t bufsize = 32;
+	FILE* fp = fopen(local_filename, "r");
+	if(fp == NULL){
+		write(2, "couldn't open local file\n", strlen("couldn't open local file\n"));
+		return;
+	}
+
+	char* command = calloc(strlen(remote_filename) + 11, sizeof(*command));
+	write(client_sock, strcat(strcat(command, "echo '' > "), remote_filename), strlen(remote_filename) + 11);
+	command = realloc(NULL, strlen(remote_filename) + 11 + bufsize + 20);
+	free(local_filename);
+	while(getline(&buffer, &bufsize, fp) > 0){
+		printf("Buffer: %s", buffer);
+		strcpy(command, "echo '");
+		strcat(command, buffer);
+		strcat(command, "' >> ");
+		strcat(command, remote_filename);
+		printf("Command: %s\n", command);
+		write(client_sock, command, strlen(command));
+		bzero(command, strlen(command));
+		bzero(buffer, strlen(buffer));
+	}
+
+	fclose(fp);
+
+}
+
 void* th_read(void* args){
 	int client_sock = (int)((int*)args)[0];
 	int status = 0;
 	char* response = realloc(NULL, sizeof(*response)*900000);
 	while(1){
 		status = read((int)client_sock, response, 900000);
-//		sem_wait(&reading);
 		if(status <= 0){
 			perror("read failed: ");
 			return NULL;
@@ -31,7 +67,6 @@ void* th_read(void* args){
 			bzero(response, 900000);
 			go = 0;
 		}
-//		sem_post(&reading);
 	}
 }
 
@@ -39,13 +74,19 @@ void* th_send(void* args){
 	int client_sock = (int)((int*)args)[0];
 	char* command_to_send = realloc(NULL, sizeof(*command_to_send)*65536);
 	while(1){
-//		sem_wait(&reading);
 		printf("\nCommand: ");
 		fgets(command_to_send, 65536, stdin);
-		if(strcmp(command_to_send, "quit") == 0)
-			return NULL;
-		write((int)client_sock, command_to_send, strlen(command_to_send));
-//		sem_post(&reading);
+		printf("Sending %s\n", command_to_send);
+		if(strcmp(command_to_send, "quit\n") == 0){
+			exit(0);
+		}
+		if(strcmp(command_to_send, "culo\n") == 0){
+			printf("nice");
+			sendFileToClient(client_sock);
+		}
+		else{
+			write((int)client_sock, command_to_send, strlen(command_to_send));
+		}
 		bzero(command_to_send, strlen(command_to_send));
 	}
 	if(command_to_send){
